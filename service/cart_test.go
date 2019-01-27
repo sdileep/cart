@@ -1,6 +1,7 @@
 package service
 
 import (
+	"math"
 	"testing"
 
 	"github.com/sdileep/cart/service/entity"
@@ -9,12 +10,15 @@ import (
 )
 
 const (
+	axeDeo   = "Axe Deo"
 	doveSoap = "Dove Soap"
 )
 
 func Test_cartService_AddProduct(t *testing.T) {
+	const taxRate = 12.5
 	type fields struct {
-		catalog ProductService
+		productService ProductService
+		taxService     TaxService
 	}
 	type args struct {
 		cartID    string
@@ -22,10 +26,16 @@ func Test_cartService_AddProduct(t *testing.T) {
 		quantity  uint8
 	}
 
-	catalog := map[string]*entity.Product{
+	productMaster := map[string]*entity.Product{
+		axeDeo:   {ID: axeDeo, Name: axeDeo, Price: 99.99},
 		doveSoap: {ID: doveSoap, Name: doveSoap, Price: 39.99},
 	}
-	defaultProductService := NewProductService(catalog)
+	defaultProductService := NewProductService(productMaster)
+	defaultTaxService := NewTaxService(0)
+	defaultFields := fields{
+		productService: defaultProductService,
+		taxService:     defaultTaxService,
+	}
 
 	tests := []struct {
 		name    string
@@ -36,10 +46,8 @@ func Test_cartService_AddProduct(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "user adds empty product",
-			fields: fields{
-				catalog: defaultProductService,
-			},
+			name:   "user adds empty product",
+			fields: defaultFields,
 			args: args{
 				quantity:  5,
 				productID: "",
@@ -48,10 +56,8 @@ func Test_cartService_AddProduct(t *testing.T) {
 			wantErr: preConditionError("productID", "empty"),
 		},
 		{
-			name: "user adds unknown product",
-			fields: fields{
-				catalog: defaultProductService,
-			},
+			name:   "user adds unknown product",
+			fields: defaultFields,
 			args: args{
 				quantity:  5,
 				productID: "unknown",
@@ -60,10 +66,8 @@ func Test_cartService_AddProduct(t *testing.T) {
 			wantErr: ProductNotFound,
 		},
 		{
-			name: "user adds 'Dove Soap' product of '0' quantity",
-			fields: fields{
-				catalog: defaultProductService,
-			},
+			name:   "user adds 'Dove Soap' product of '0' quantity",
+			fields: defaultFields,
 			args: args{
 				quantity:  0,
 				productID: doveSoap,
@@ -72,10 +76,8 @@ func Test_cartService_AddProduct(t *testing.T) {
 			wantErr: preConditionError("quantity", "empty"),
 		},
 		{
-			name: "user adds 'Dove Soap' product of '5' quantities",
-			fields: fields{
-				catalog: defaultProductService,
-			},
+			name:   "user adds 'Dove Soap' product of '5' quantities",
+			fields: defaultFields,
 			args: args{
 				quantity:  5,
 				productID: doveSoap,
@@ -89,10 +91,8 @@ func Test_cartService_AddProduct(t *testing.T) {
 			},
 		},
 		{
-			name: "user adds 'Dove Soap' product of '5' quantities to a nil cart",
-			fields: fields{
-				catalog: defaultProductService,
-			},
+			name:   "user adds 'Dove Soap' product of '5' quantities to a nil cart",
+			fields: defaultFields,
 			args: args{
 				quantity:  5,
 				productID: doveSoap,
@@ -108,9 +108,7 @@ func Test_cartService_AddProduct(t *testing.T) {
 			name: `user adds 'Dove Soap' product of '5' quantities
 					and  'Dove Soap' product of '3' quantities
 					`,
-			fields: fields{
-				catalog: defaultProductService,
-			},
+			fields: defaultFields,
 			args: args{
 				quantity:  3,
 				productID: doveSoap,
@@ -131,10 +129,38 @@ func Test_cartService_AddProduct(t *testing.T) {
 				Total: 319.92,
 			},
 		},
+		{
+			name: "2 'Dove Soap', 2 'Axe Deo', tax rate '12.5%'",
+			fields: fields{
+				productService: defaultProductService,
+				taxService:     NewTaxService(taxRate),
+			},
+			args: args{
+				quantity:  2,
+				productID: axeDeo,
+			},
+			setup: func() []args {
+				return []args{
+					{
+						quantity:  2,
+						productID: doveSoap,
+					},
+				}
+
+			},
+			want: &entity.Cart{
+				Items: []*entity.CartItem{
+					{ProductID: doveSoap, Quantity: 2, UnitPrice: 39.99},
+					{ProductID: axeDeo, Quantity: 2, UnitPrice: 99.99},
+				},
+				Tax:   35.00,
+				Total: 314.96,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewCartService(tt.fields.catalog)
+			c := NewCartService(tt.fields.productService, tt.fields.taxService)
 
 			var cart *entity.Cart
 			var cartID string
@@ -160,6 +186,7 @@ func Test_cartService_AddProduct(t *testing.T) {
 
 			require.EqualValues(t, tt.want.Items, got.Items, "items")
 			assert.Equal(t, tt.want.Total, got.Total, "total")
+			assert.Equal(t, tt.want.Tax, got.Tax, "tax")
 
 		})
 	}
@@ -222,7 +249,9 @@ func Test_cartService_computeTotal(t *testing.T) {
 			c := &cartService{
 				productService: tt.fields.catalog,
 			}
-			if got := c.computeTotal(tt.args.cart); got != tt.want {
+			got := c.computeTotal(tt.args.cart)
+			got = math.Ceil(got*100) / 100
+			if got != tt.want {
 				t.Errorf("cartService.computeTotal() = %v, want %v", got, tt.want)
 			}
 		})

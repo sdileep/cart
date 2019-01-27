@@ -20,6 +20,7 @@ type cartService struct {
 	// mocking cart data store with activeCarts for simplicity of the exercise
 	activeCarts    map[string]*entity.Cart
 	productService ProductService
+	taxService     TaxService
 }
 
 func (c *cartService) AddProduct(cartID string, productID string, quantity uint8) (*entity.Cart, error) {
@@ -66,7 +67,11 @@ func (c *cartService) AddProduct(cartID string, productID string, quantity uint8
 		cart.Items = append(cart.Items, item)
 	}
 
-	cart.Total = c.computeTotal(cart)
+	total := c.computeTotal(cart)
+	tax := c.computeTax(total)
+
+	cart.Tax = math.Ceil(tax*100) / 100
+	cart.Total = math.Ceil((total+tax)*100) / 100
 
 	return cart, nil
 }
@@ -82,12 +87,17 @@ func (c *cartService) computeTotal(cart *entity.Cart) float64 {
 		total += float64(v.Quantity) * v.UnitPrice
 	}
 
-	return math.Ceil(total*100) / 100
+	return total
 }
 
-func NewCartService(productService ProductService) CartService {
+func (c *cartService) computeTax(total float64) float64 {
+	return c.taxService.ComputeTax(total)
+}
+
+func NewCartService(productService ProductService, taxService TaxService) CartService {
 	return &cartService{
 		activeCarts:    make(map[string]*entity.Cart),
 		productService: productService,
+		taxService:     taxService,
 	}
 }

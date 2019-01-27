@@ -9,6 +9,7 @@ type Product struct {
 type Cart struct {
 	ID    string
 	Items []*CartItem
+	Tax   float64
 	Total float64
 }
 
