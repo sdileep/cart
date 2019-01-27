@@ -31,6 +31,7 @@ func Test_cartService_AddProduct(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
+		setup   func() []args
 		want    *entity.Cart
 		wantErr error
 	}{
@@ -88,7 +89,7 @@ func Test_cartService_AddProduct(t *testing.T) {
 			},
 		},
 		{
-			name: "user adds 'Dove Soap' product of '5' quantities to a nil cartID",
+			name: "user adds 'Dove Soap' product of '5' quantities to a nil cart",
 			fields: fields{
 				catalog: defaultProductService,
 			},
@@ -103,11 +104,51 @@ func Test_cartService_AddProduct(t *testing.T) {
 				Total: 199.95,
 			},
 		},
+		{
+			name: `user adds 'Dove Soap' product of '5' quantities
+					and  'Dove Soap' product of '3' quantities
+					`,
+			fields: fields{
+				catalog: defaultProductService,
+			},
+			args: args{
+				quantity:  3,
+				productID: doveSoap,
+			},
+			setup: func() []args {
+				return []args{
+					{
+						quantity:  5,
+						productID: doveSoap,
+					},
+				}
+
+			},
+			want: &entity.Cart{
+				Items: []*entity.CartItem{
+					{ProductID: doveSoap, Quantity: 8, UnitPrice: 39.99},
+				},
+				Total: 319.92,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCartService(tt.fields.catalog)
-			got, err := c.AddProduct(tt.args.cartID, tt.args.productID, tt.args.quantity)
+
+			var cart *entity.Cart
+			var cartID string
+			var err error
+			if tt.setup != nil {
+				argsArr := tt.setup()
+				for _, args := range argsArr {
+
+					cart, err = c.AddProduct(cartID, args.productID, args.quantity)
+					cartID = cart.ID
+				}
+			}
+
+			got, err := c.AddProduct(cartID, tt.args.productID, tt.args.quantity)
 
 			if tt.wantErr != nil {
 				require.NotNil(t, err, "error expected")

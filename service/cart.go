@@ -48,14 +48,24 @@ func (c *cartService) AddProduct(cartID string, productID string, quantity uint8
 		c.activeCarts[cartID] = cart
 	}
 
-	// create new cartID item  with quantity & line item total
-	item := &entity.CartItem{
-		ProductID: product.ID,
-		Quantity:  quantity,
-		UnitPrice: product.Price,
+	var item *entity.CartItem
+	for _, v := range cart.Items {
+		if productID == v.ProductID {
+			item = v
+			item.Quantity += quantity
+			break
+		}
 	}
 
-	cart.Items = append(cart.Items, item)
+	if item == nil {
+		item = &entity.CartItem{
+			ProductID: product.ID,
+			Quantity:  quantity,
+			UnitPrice: product.Price,
+		}
+		cart.Items = append(cart.Items, item)
+	}
+
 	cart.Total = c.computeTotal(cart)
 
 	return cart, nil
@@ -66,7 +76,7 @@ func (c *cartService) computeTotal(cart *entity.Cart) float64 {
 		return 0
 	}
 
-	// loop through cartID items to calculate total
+	// loop through cart items to calculate total
 	var total float64
 	for _, v := range cart.Items {
 		total += float64(v.Quantity) * v.UnitPrice
