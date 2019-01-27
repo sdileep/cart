@@ -1,0 +1,34 @@
+hash: 0eabb9a156f87eceff0421b6f02ac6ac537ad3fd119c4f0368b0ac84fa0967ae
+updated: 2019-01-27T20:48:32.386232+11:00
+imports: []
+testImports:
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
+- name: github.com/google/go-cmp
+  version: 2248b49eaa8e1c8c0963ee77b40841adbc19d4ca
+  subpackages:
+  - cmp
+  - cmp/internal/diff
+  - cmp/internal/function
+  - cmp/internal/value
+- name: github.com/pkg/errors
+  version: ffb6e22f01932bf7ac35e0bad9be11f01d1c8685
+- name: github.com/pmezard/go-difflib
+  version: 5d4384ee4fb2527b0a1256a821ebfc92f91efefc
+  subpackages:
+  - difflib
+- name: github.com/stretchr/testify
+  version: 363ebb24d041ccea8068222281c2e963e997b9dc
+  subpackages:
+  - assert
+  - require
+- name: gotest.tools
+  version: 1083505acf35a0bd8a696b26837e1fb3187a7a83
+  subpackages:
+  - assert
+  - assert/cmp
+  - internal/difflib
+  - internal/format
+  - internal/source

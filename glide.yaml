@@ -1,0 +1,4 @@
+package: github.com/sdileep/cart
+
+testImport:
+- package: github.com/stretchr/testify
